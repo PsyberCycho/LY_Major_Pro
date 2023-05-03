@@ -41,7 +41,7 @@ int timestamp;       // Variable to save current epoch time
 
 unsigned long sendDataPrevMillis = 0;
 unsigned long timerDelay = 10000;     // Timer variables (send new readings every 10 sec) 
-unsigned int init_delay = 5000;
+// unsigned int init_delay = 2500;
 
 // ......................................................................................
 
@@ -72,7 +72,7 @@ bool initADXL(void);
 // signal parameters
 
 #define FFT_N 16        // Sample size must be a power of 2
-#define TOTAL_TIME 0.1  // = FFT_N / sampling_freq = 1024 / 200 ; The time in which data was captured.
+#define TOTAL_TIME 0.08  // = FFT_N / sampling_freq = 1024 / 200 ; The time in which data was captured.
 
 // #define num_batch 5
 
@@ -130,6 +130,13 @@ bool fetchGPS()
 
 }
 
+void dilay(unsigned long int delay_req)
+{
+  while(((delay_req/2) - millis()) > (delay_req/2)) { ; }
+  return ;
+}
+
+
 void setup()
 {  
   Serial.begin(115200); // begin Serial comm
@@ -138,23 +145,23 @@ void setup()
   check_init_ADXL = initADXL();  // Initialize ADXL sensor
   if(check_init_ADXL == true)    // returning to current function to restore continuity and not upset WDT
   { Serial.printf("\n - - - - - - - - - - ADXL345 initialized successfully !! - - - - - - - - - - \n"); }
-  while((millis() - init_delay) < 0) { ; }
+  dilay(5000);
   
   check_init_WiFi = false;
   check_init_WiFi = initWiFi();  // Get internet connection
   if(check_init_WiFi == true)    // returning to current function to restore continuity and not upset WDT
   { Serial.printf("\n - - - - - - - - - - WiFi initialized successfully !! - - - - - - - - - - \n"); }
-  while((millis() - init_delay) < init_delay) { ; }
+  dilay(5000);
   
   timeClient.begin();
   Serial.printf("\n- - - - - Time client begun !! - - - - - \n");
-  while((millis() - init_delay) < 0) { ; }
+  dilay(5000);
   
   check_init_Firebase = false;
   check_init_Firebase = firebase_init(); // run the required steps for establishing connection with Firebase
   if(check_init_Firebase == true)        // returning to current function to restore continuity and not upset WDT
   { Serial.printf("\n - - - - - - - - - - FIREBASE initialized successfully !! - - - - - - - - - - \n"); }
-  while((millis() - init_delay) < 0) { ; }
+  dilay(5000);
 
 }
 
@@ -173,7 +180,7 @@ volatile int i, j, q, k;                 // variables for the running loops
 void loop()
 {
   Serial.printf("\nLoop Has begun !\n");
-  while((millis() - init_delay) < 0) { ; }
+  dilay(5000);
 
   // check_get_data = false;
   // t1 = micros();
@@ -188,7 +195,7 @@ void loop()
 
   // conveying time required
   Serial.printf("\nTime for Data collection = %lf ms\nTime for FFT calculation = %lf ms\n",fft_time);
-  String time = String(sample_time) + " - " + String(fft_time) + " - " + String(data_count);
+  // String time = String(sample_time) + " - " + String(fft_time) + " - " + String(data_count);
   
   // Send new readings to database
   if (Firebase.ready() && (check_fft) /*((millis() - sendDataPrevMillis > timerDelay) || sendDataPrevMillis == 0)*/)
@@ -198,10 +205,10 @@ void loop()
     //Get current timestamp
     timestamp = getTime();
     Serial.print ("time: ");
-    Serial.println (time);
+    Serial.println (timestamp);
     
-    String(timestamp) = String(timestamp) + " - " + String(data_count);
-    parentPath= databasePath + "/" + String(timestamp);
+    String(timestamp) = String(timestamp);
+    parentPath = databasePath + "/" + String(timestamp);
 
     json.set(X_accel.c_str(), String(event.acceleration.x));
     Serial.printf("\nX-accel = %f\n",event.acceleration.x);
@@ -215,7 +222,7 @@ void loop()
     json.set(freq.c_str(), String(funda_freq)); 
     Serial.printf("Fundamental frequency = %lf\n",funda_freq);
       
-    json.set(timePath, String(time));
+    json.set(timePath, String(timestamp));
     check_fetchGPS = fetchGPS();
     if(check_fetchGPS == true) { json.set(location.c_str(), Location); }
     //Serial.printf("Fundamental frequency = %d\n",timestamp);
@@ -351,7 +358,7 @@ bool do_fft()
   }
   t2 = micros();
 
-  while((millis() - init_delay) < 0) { ; }  
+  dilay(5000); 
   
 
   /*Multiply the magnitude of the DC component with (1/FFT_N) to obtain the DC component*/
